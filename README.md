@@ -99,23 +99,47 @@ Before running the application, ensure you have the following installed:
 
     Open `.env` and update the following values:
 
-    *   **DATABASE_URL**: Connection string for your MySQL database.
-        *   Format: `mysql://USER:PASSWORD@HOST:PORT/DATABASE_NAME`
-        *   Example: `mysql://root:password@localhost:3306/financial_scraper`
-        *   *Tip: Ensure you have created the database (e.g., `financial_scraper`) in your MySQL server before running.*
+    ### **A. Database Setup (MySQL)**
+    You need a running MySQL server.
+    1.  **Install MySQL**:
+        *   **Mac (Homebrew)**: `brew install mysql` then `brew services start mysql`
+        *   **Windows**: Download installer from [mysql.com](https://dev.mysql.com/downloads/installer/)
+        *   **Linux**: `sudo apt install mysql-server`
+    2.  **Create Database**:
+        Log in to MySQL and run:
+        ```sql
+        CREATE DATABASE financial_data_scraper;
+        ```
+    3.  **Update .env**:
+        Set `DATABASE_URL` with your credentials:
+        ```env
+        DATABASE_URL=mysql://root:YOUR_PASSWORD@localhost:3306/financial_data_scraper
+        ```
 
-    *   **JWT_SECRET**: A secure random string used for session signing.
-        *   You can generate one using the command line:
-            ```bash
-            openssl rand -base64 32
-            ```
-        *   Or just use a long random string.
+    ### **B. Generate JWT Secret**
+    This key is used to sign session cookies. You can generate a secure random string using one of these methods:
+    *   **Mac/Linux Terminal**:
+        ```bash
+        openssl rand -base64 32
+        ```
+    *   **Node.js (Any OS)**:
+        ```bash
+        node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+        ```
+    *   **Manual**: Just type a long, random string of characters.
+    
+    Paste the result into your `.env`:
+    ```env
+    JWT_SECRET=your_generated_secret_string_here
+    ```
 
-    *   **PERPLEXITY_API_KEY**: Required for the "Smart Fallback" feature.
-        *   Get your key from [docs.perplexity.ai](https://docs.perplexity.ai).
-        *   If you don't have one, the scraper will still work with Screener and MoneyControl but will fail on the 3rd fallback step.
-
-    *   **Other Values**: The remaining values in `.env.example` (like `BUILT_IN_FORGE_API_URL`) are pre-configured defaults to ensure the app starts correctly. You typically don't need to change them.
+    ### **C. Perplexity API (Optional but Recommended)**
+    Required for the "Smart Fallback" feature to find companies when standard search fails.
+    *   Get your key from [docs.perplexity.ai](https://docs.perplexity.ai).
+    *   Add it to `.env`:
+        ```env
+        PERPLEXITY_API_KEY=pplx-xxxxxxxxxxxxxxxxxxxxxxxx
+        ```
 
 ---
 
