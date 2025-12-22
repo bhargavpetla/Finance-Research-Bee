@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1765779993859,
+      "tag": "0000_clammy_doctor_strange",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1765780129989,
+      "tag": "0001_lean_lightspeed",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1765783707613,
+      "tag": "0002_dashing_nebula",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1765784809054,
+      "tag": "0003_magenta_naoko",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1765787411624,
+      "tag": "0004_robust_sprite",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1765875712414,
+      "tag": "0005_chemical_lord_hawal",
+      "breakpoints": true
+    }
+  ]
+}

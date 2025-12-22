@@ -106,3 +106,15 @@ temp/
 *.sqlite
 *.sqlite3
 uploads/
+
+# Frontend specific
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# Backend specific
+backend/node_modules/
+backend/dist/
+backend/.env
+backend/.env.local
