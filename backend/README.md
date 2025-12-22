@@ -6,7 +6,7 @@ Node.js + Express backend API for the Finance Research Bee financial data scrape
 
 1. **Install Dependencies**
    ```bash
-   pnpm install
+   npm install
    ```
 
 2. **Configure Environment**
@@ -23,24 +23,24 @@ Node.js + Express backend API for the Finance Research Bee financial data scrape
 
 3. **Setup Database**
    ```bash
-   pnpm run db:push
+   npm run db:push
    ```
 
 4. **Run Development Server**
    ```bash
-   pnpm run dev
+   npm run dev
    ```
    
    The API will be available at `http://localhost:5000`
 
 5. **Build for Production**
    ```bash
-   pnpm run build
+   npm run build
    ```
 
 6. **Run Production Server**
    ```bash
-   pnpm start
+   npm start
    ```
 
 ## Deployment
