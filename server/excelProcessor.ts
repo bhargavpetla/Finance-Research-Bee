@@ -2,6 +2,46 @@ import ExcelJS from 'exceljs';
 import { QuarterlyData } from './moneyControlScraper';
 import { CalculatedMetrics } from './calculator';
 
+/**
+ * Sort quarters by year (descending) then by quarter number (descending)
+ * Handles formats like "Q3'25", "Q4'24", "Q3 FY2025", "Q3 FY25"
+ */
+function sortQuartersByYearThenQuarter(quarters: string[]): string[] {
+  return quarters.sort((a, b) => {
+    // Parse quarter strings like "Q3'25" or "Q3 FY2025"
+    const parseQuarter = (q: string) => {
+      // Try format: Q3'25 or Q3'25
+      let match = q.match(/Q(\d)['']?(\d{2})/);
+      if (match) {
+        return {
+          year: 2000 + parseInt(match[2]),
+          quarter: parseInt(match[1])
+        };
+      }
+      // Try format: Q3 FY2025 or Q3 FY25
+      match = q.match(/Q(\d)\s*FY\s*(\d{2,4})/i);
+      if (match) {
+        let year = parseInt(match[2]);
+        if (year < 100) year += 2000;
+        return {
+          year: year,
+          quarter: parseInt(match[1])
+        };
+      }
+      return { year: 0, quarter: 0 };
+    };
+    
+    const aParsed = parseQuarter(a);
+    const bParsed = parseQuarter(b);
+    
+    // Sort by year descending, then by quarter descending
+    if (aParsed.year !== bParsed.year) {
+      return bParsed.year - aParsed.year;
+    }
+    return bParsed.quarter - aParsed.quarter;
+  });
+}
+
 export interface CompanyQuarterlyData {
   companyName: string;
   dataSource: 'screener' | 'moneycontrol' | 'perplexity' | 'perplexity-url';
@@ -81,12 +121,12 @@ async function buildConsolidatedSheet(
   sheet: ExcelJS.Worksheet,
   allCompanyData: CompanyQuarterlyData[]
 ): Promise<void> {
-  // Get all unique quarters across all companies, sorted most recent first
+  // Get all unique quarters across all companies, sorted by year then quarter (most recent first)
   const allQuarters = new Set<string>();
   allCompanyData.forEach(company => {
     company.quarters.forEach(q => allQuarters.add(q.period || q.quarter));
   });
-  const quartersList = Array.from(allQuarters).sort().reverse(); // Show all quarters
+  const quartersList = sortQuartersByYearThenQuarter(Array.from(allQuarters)); // Sort by year, then quarter
 
   // Dashboard metrics to display
   const dashboardMetrics = ['Revenue', 'Op. EBITDA%', 'Op. EBIT%', 'Op. PBT', 'PBT'];
@@ -267,12 +307,12 @@ async function buildDetailedConsolidatedSheet(
     'PBT'
   ];
 
-  // Get all unique quarters across all companies
+  // Get all unique quarters across all companies, sorted by year then quarter (most recent first)
   const allQuarters = new Set<string>();
   allCompanyData.forEach(company => {
     company.quarters.forEach(q => allQuarters.add(q.quarter));
   });
-  const quartersList = Array.from(allQuarters).sort().reverse(); // Most recent first
+  const quartersList = sortQuartersByYearThenQuarter(Array.from(allQuarters)); // Sort by year, then quarter
 
   // Build header row
   const headerRow = ['Indicator'];

@@ -2,7 +2,8 @@
   "files": [],
   "references": [
     { "path": "./frontend" },
-    { "path": "./backend" }
+    { "path": "./backend" },
+    { "path": "./server" }
   ],
   "compilerOptions": {
     "skipLibCheck": true
