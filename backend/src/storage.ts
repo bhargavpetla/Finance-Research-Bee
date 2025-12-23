@@ -6,14 +6,8 @@ import { ENV } from './_core/env';
 type StorageConfig = { baseUrl: string; apiKey: string };
 
 function getStorageConfig(): StorageConfig {
-  const baseUrl = ENV.forgeApiUrl;
-  const apiKey = ENV.forgeApiKey;
-
-  if (!baseUrl || !apiKey) {
-    throw new Error(
-      "Storage proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
-    );
-  }
+  const baseUrl = ENV.forgeApiUrl || '';
+  const apiKey = ENV.forgeApiKey || '';
 
   return { baseUrl: baseUrl.replace(/\/+$/, ""), apiKey };
 }
@@ -38,7 +32,7 @@ async function buildDownloadUrl(
     method: "GET",
     headers: buildAuthHeaders(apiKey),
   });
-  return (await response.json()).url;
+  return (await response.json() as { url: string }).url;
 }
 
 function ensureTrailingSlash(value: string): string {
@@ -63,7 +57,7 @@ function toFormData(
   return form;
 }
 
-function buildAuthHeaders(apiKey: string): HeadersInit {
+function buildAuthHeaders(apiKey: string): Record<string, string> {
   return { Authorization: `Bearer ${apiKey}` };
 }
 
@@ -77,8 +71,8 @@ export async function storagePut(
 ): Promise<{ key: string; url: string }> {
   const { baseUrl, apiKey } = getStorageConfig();
 
-  // Local development fallback
-  if (baseUrl.includes("localhost")) {
+  // Use local filesystem if no credentials provided
+  if (!baseUrl || !apiKey || baseUrl.includes("localhost")) {
     const uploadsDir = path.join(process.cwd(), "uploads");
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
@@ -94,10 +88,11 @@ export async function storagePut(
     const buffer = typeof data === 'string' ? Buffer.from(data) : Buffer.from(data);
     fs.writeFileSync(fullPath, buffer);
 
-    // Return local URL
+    // Return local URL - use the actual backend port
+    const port = process.env.PORT || '3001';
     return {
       key: relKey,
-      url: `http://localhost:3000/uploads/${relKey}`
+      url: `http://localhost:${port}/uploads/${relKey}`
     };
   }
 
@@ -116,18 +111,19 @@ export async function storagePut(
       `Storage upload failed (${response.status} ${response.statusText}): ${message}`
     );
   }
-  const url = (await response.json()).url;
+  const url = (await response.json() as any).url;
   return { key, url };
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
   const { baseUrl, apiKey } = getStorageConfig();
 
-  // Local development fallback
-  if (baseUrl.includes("localhost")) {
+  // Use local filesystem if no credentials provided
+  if (!baseUrl || !apiKey || baseUrl.includes("localhost")) {
+    const port = process.env.PORT || '3001';
     return {
       key: relKey,
-      url: `http://localhost:3000/uploads/${relKey}`
+      url: `http://localhost:${port}/uploads/${relKey}`
     };
   }
 

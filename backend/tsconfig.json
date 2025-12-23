@@ -18,7 +18,7 @@
     "baseUrl": ".",
     "types": ["node"],
     "paths": {
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["./src/shared/*"]
     }
   }
 }
