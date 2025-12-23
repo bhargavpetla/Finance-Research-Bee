@@ -13,31 +13,42 @@ This guide explains how to deploy the Finance Research Bee application with the 
 ## Frontend Deployment (Vercel)
 
 ### Prerequisites
+
 - Vercel account ([vercel.com](https://vercel.com))
 - GitHub repository connected to Vercel
 
 ### Steps
 
 1. **Navigate to Frontend Directory**
+
    ```bash
    cd frontend
    ```
 
 2. **Install Dependencies**
+
    ```bash
    pnpm install
    ```
 
 3. **Configure Environment Variables**
-   
+
    Create a `.env` file based on `.env.example`:
+
    ```env
    VITE_API_URL=https://your-backend-url.railway.app
+   ```
+
+   For local development:
+
+   ```env
+   VITE_API_URL=http://localhost:3001
    ```
 
 4. **Deploy to Vercel**
 
    **Option A: Using Vercel CLI**
+
    ```bash
    npm i -g vercel
    vercel
@@ -59,17 +70,20 @@ This guide explains how to deploy the Finance Research Bee application with the 
 ## Backend Deployment (Railway)
 
 ### Prerequisites
+
 - Railway account ([railway.app](https://railway.app))
 - GitHub repository connected to Railway
 
 ### Steps
 
 1. **Navigate to Backend Directory**
+
    ```bash
    cd backend
    ```
 
 2. **Install Dependencies**
+
    ```bash
    pnpm install
    ```
@@ -77,6 +91,7 @@ This guide explains how to deploy the Finance Research Bee application with the 
 3. **Deploy to Railway**
 
    **Option A: Using Railway CLI**
+
    ```bash
    npm i -g @railway/cli
    railway login
@@ -96,21 +111,22 @@ This guide explains how to deploy the Finance Research Bee application with the 
    - Railway will automatically create a `DATABASE_URL` environment variable
 
 5. **Configure Environment Variables**
-   
+
    In Railway dashboard, add these variables:
-   
+
    ```env
    DATABASE_URL=<automatically set by Railway MySQL>
    JWT_SECRET=<generate using: openssl rand -base64 32>
    PERPLEXITY_API_KEY=<your perplexity api key>
-   PORT=5000
+   PORT=3001
    NODE_ENV=production
    CORS_ORIGIN=https://your-frontend-url.vercel.app
    ```
 
 6. **Run Database Migrations**
-   
+
    After deployment, run migrations using Railway CLI:
+
    ```bash
    railway run pnpm run db:push
    ```
@@ -135,16 +151,18 @@ After deploying the backend:
 ## Environment Variables Summary
 
 ### Frontend (.env)
+
 ```env
 VITE_API_URL=https://your-backend-url.railway.app
 ```
 
 ### Backend (.env)
+
 ```env
 DATABASE_URL=mysql://user:password@host:port/database
 JWT_SECRET=your_generated_secret_string_here
 PERPLEXITY_API_KEY=pplx-xxxxxxxxxxxxxxxxxxxxxxxx
-PORT=5000
+PORT=3001
 NODE_ENV=production
 CORS_ORIGIN=https://your-frontend-url.vercel.app
 ```
@@ -154,21 +172,23 @@ CORS_ORIGIN=https://your-frontend-url.vercel.app
 ## Local Development
 
 ### Frontend
+
 ```bash
 cd frontend
 pnpm install
 pnpm run dev
-# Runs on http://localhost:3000
+# Runs on http://localhost:9999
 ```
 
 ### Backend
+
 ```bash
 cd backend
 pnpm install
 cp .env.example .env
 # Edit .env with your local database credentials
 pnpm run dev
-# Runs on http://localhost:5000
+# Runs on http://localhost:3001
 ```
 
 ---
@@ -176,22 +196,26 @@ pnpm run dev
 ## Troubleshooting
 
 ### CORS Errors
+
 - Ensure `CORS_ORIGIN` in backend matches your frontend URL
 - Check that the backend is properly setting CORS headers
 
 ### Database Connection Issues
+
 - Verify `DATABASE_URL` is correctly set in Railway
 - Ensure database migrations have been run
 - Check Railway logs for connection errors
 
 ### Build Failures
+
 - Check Railway/Vercel build logs
 - Ensure all dependencies are listed in package.json
 - Verify TypeScript compilation with `pnpm run check`
 
 ### API Not Responding
+
 - Check Railway deployment logs
-- Verify the backend is running on the correct PORT
+- Verify the backend is running on the correct PORT (3001)
 - Test the health endpoint: `https://your-backend-url.railway.app/api/health`
 
 ---
