@@ -15,12 +15,12 @@ export function WizardLayout({ currentStep, steps, children }: WizardLayoutProps
                 {/* Header & Stepper */}
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <span className="text-xl font-bold text-primary">AI</span>
+                        <div className="h-10 w-10 rounded-lg flex items-center justify-center">
+                            <img src="/nsoffice-logo.png" alt="NSOFFICE.ai" className="h-10 w-10 object-contain" />
                         </div>
                         <div>
                             <h1 className="font-bold text-lg">Financial Research AI</h1>
-                            <p className="text-xs text-muted-foreground">Automated Data Extraction</p>
+                            <p className="text-xs text-muted-foreground">powered by NSOFFICE.ai</p>
                         </div>
                     </div>
 

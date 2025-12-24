@@ -19,6 +19,11 @@ export function Step1Upload({ onFileSelect, selectedFile, onNext, isUploading }:
                 <p className="text-muted-foreground">
                     Upload your Excel file containing company names. We'll extract them and fetch quarterly financial data automatically.
                 </p>
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-3 mt-4">
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                        ⚠️ Only upload the <strong>Format-NEW</strong> Excel file
+                    </p>
+                </div>
             </div>
 
             <Card className="border-2 border-dashed border-primary/20 bg-primary/5">

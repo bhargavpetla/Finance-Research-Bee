@@ -14,7 +14,10 @@ export function Step3Progress({ jobStatus, onNext }: Step3ProgressProps) {
     const progress = jobStatus?.progressData?.companyDetails?.reduce((acc: number, curr: any) => acc + (curr.progress || 0), 0) / (jobStatus?.progressData?.totalCompanies || 1);
     const totalCompanies = jobStatus?.progressData?.totalCompanies || 0;
     const completedCount = jobStatus?.progressData?.completedCompanies?.length || 0;
+    const failedCount = jobStatus?.progressData?.failedCompanies?.length || 0;
     const isCompleted = jobStatus?.status === 'completed';
+    const isFailed = jobStatus?.status === 'failed';
+    const isDone = isCompleted || isFailed;
 
     return (
         <div className="space-y-8">
@@ -22,10 +25,14 @@ export function Step3Progress({ jobStatus, onNext }: Step3ProgressProps) {
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
-                            {isCompleted ? (
+                            {isDone ? (
                                 <>
-                                    <CheckCircle2 className="w-8 h-8 text-green-500" />
-                                    Research Complete
+                                    {isCompleted ? (
+                                        <CheckCircle2 className="w-8 h-8 text-green-500" />
+                                    ) : (
+                                        <XCircle className="w-8 h-8 text-red-500" />
+                                    )}
+                                    {isCompleted ? 'Research Complete' : 'Research Failed'}
                                 </>
                             ) : (
                                 <>
@@ -35,8 +42,10 @@ export function Step3Progress({ jobStatus, onNext }: Step3ProgressProps) {
                             )}
                         </h2>
                         <p className="text-muted-foreground">
-                            {isCompleted
-                                ? "All companies have been processed successfully."
+                            {isDone
+                                ? isCompleted 
+                                    ? "All companies have been processed successfully."
+                                    : `Processing failed. ${failedCount} of ${totalCompanies} companies could not be processed.`
                                 : "Fetching quarterly financial data from Moneycontrol via Perplexity AI..."}
                         </p>
                     </div>

@@ -1,11 +1,13 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuarterSelector } from "@/components/QuarterSelector";
-import { ArrowLeft, ArrowRight, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Search, Trash2, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 interface Step2SelectionProps {
     companies: Array<{ name: string; url: string }>;
@@ -34,6 +36,24 @@ export function Step2Selection({
 }: Step2SelectionProps) {
     const [newCompany, setNewCompany] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isValidating, setIsValidating] = useState(false);
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+    // Debounce search term to avoid excessive API calls
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(newCompany);
+        }, 500); // Wait 500ms after user stops typing
+
+        return () => clearTimeout(timer);
+    }, [newCompany]);
+
+    // Search companies with debounced term
+    const { data: searchResults, isLoading: isSearching } = trpc.scraper.searchCompanies.useQuery(
+        { query: debouncedSearchTerm, limit: 5 },
+        { enabled: debouncedSearchTerm.length >= 2 && showSuggestions }
+    );
 
     const handleToggleAll = (checked: boolean) => {
         if (checked) {
@@ -51,11 +71,19 @@ export function Step2Selection({
         }
     };
 
-    const handleAddCompany = () => {
-        if (newCompany.trim()) {
-            onAddCompany(newCompany.trim());
-            setNewCompany("");
-        }
+    const handleAddCompany = async () => {
+        if (!newCompany.trim()) return;
+
+        // Just add the company directly without validation
+        // Autocomplete still provides suggestions, but we don't block on validation
+        onAddCompany(newCompany.trim());
+        setNewCompany("");
+        setShowSuggestions(false);
+    };
+
+    const handleSelectSuggestion = (suggestion: string) => {
+        setNewCompany(suggestion);
+        setShowSuggestions(false);
     };
 
     const filteredCompanies = companies.filter((c) =>
@@ -106,16 +134,50 @@ export function Step2Selection({
             </div>
 
             <div className="flex gap-4 items-end border-t pt-6">
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-2 relative">
                     <label className="text-sm font-medium">Add another company</label>
                     <div className="flex gap-2">
-                        <Input
-                            placeholder="Add company name (e.g. MyCo)"
-                            value={newCompany}
-                            onChange={(e) => setNewCompany(e.target.value)}
-                        />
-                        <Button variant="outline" onClick={handleAddCompany} disabled={!newCompany.trim()}>
-                            <Plus className="w-4 h-4 mr-2" />
+                        <div className="flex-1 relative">
+                            <Input
+                                placeholder="Type IT company name (e.g. TCS, Infosys)"
+                                value={newCompany}
+                                onChange={(e) => {
+                                    setNewCompany(e.target.value);
+                                    setShowSuggestions(e.target.value.length >= 2);
+                                }}
+                                onFocus={() => setShowSuggestions(newCompany.length >= 2)}
+                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                            />
+                            {isSearching && (
+                                <Loader2 className="absolute right-3 top-3 w-4 h-4 animate-spin text-muted-foreground" />
+                            )}
+                            {showSuggestions && searchResults && searchResults.length > 0 && (
+                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border rounded-md shadow-lg max-h-60 overflow-auto">
+                                    {searchResults.map((result, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center justify-between"
+                                            onClick={() => handleSelectSuggestion(result.name)}
+                                        >
+                                            <span>{result.name}</span>
+                                            {result.score > 0.9 && (
+                                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            onClick={handleAddCompany} 
+                            disabled={!newCompany.trim() || isValidating}
+                        >
+                            {isValidating ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Plus className="w-4 h-4 mr-2" />
+                            )}
                             Add
                         </Button>
                     </div>

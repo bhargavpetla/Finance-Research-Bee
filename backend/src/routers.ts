@@ -8,6 +8,8 @@ import { storagePut } from "./storage";
 import { parseInputExcel } from "./excelProcessor";
 import { orchestrateFinancialDataScraping } from "./scrapingOrchestrator";
 import { COMPANIES } from "@shared/companies";
+import { validateCompanyName, fuzzySearchCompanies } from "./companyValidator";
+
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -226,6 +228,25 @@ export const appRouter = router({
           jobId,
           message: `Scraping started for ${input.testMode ? input.testCompany || 'TCS' : 'selected companies'}`
         };
+      }),
+
+    // Validate company name
+    validateCompany: publicProcedure
+      .input(z.object({ companyName: z.string() }))
+      .query(async ({ input }) => {
+        const result = await validateCompanyName(input.companyName);
+        return result;
+      }),
+
+    // Search companies with fuzzy matching
+    searchCompanies: publicProcedure
+      .input(z.object({ 
+        query: z.string(),
+        limit: z.number().default(10).optional()
+      }))
+      .query(async ({ input }) => {
+        const results = await fuzzySearchCompanies(input.query, input.limit || 10);
+        return results;
       })
   })
 });

@@ -24,7 +24,7 @@ export default function Home() {
   // Queries & Mutations
   const uploadMutation = trpc.scraper.uploadFile.useMutation();
   const startScrapingMutation = trpc.scraper.startScraping.useMutation();
-  const { data: jobStatus } = trpc.scraper.getJobStatus.useQuery(
+  const { data: jobStatus} = trpc.scraper.getJobStatus.useQuery(
     { jobId: currentJobId! },
     { enabled: !!currentJobId, refetchInterval: 1000 }
   );
@@ -38,18 +38,40 @@ export default function Home() {
     setSelectedFile(file);
   };
 
-  const handleAddCompany = (name: string) => {
-    // Check if already exists
+  const handleAddCompany = async (name: string) => {
+    // Check if already exists in the list
     if (allCompanies.some(c => c.name.toLowerCase() === name.toLowerCase())) {
       toast.error('Company already exists');
       return;
     }
 
-    // Add to custom list
-    setCustomCompanies([...customCompanies, { name, url: '' }]);
-    // Auto-select it
-    setSelectedCompanies([...selectedCompanies, name]);
-    toast.success(`Added ${name}`);
+    // Validate company name using the API
+    try {
+      const validation = await trpc.scraper.validateCompany.query({ companyName: name });
+
+      if (validation.exists) {
+        // Use exact match if available
+        const companyToAdd = validation.exactMatch || name;
+        
+        // Add to custom list
+        setCustomCompanies([...customCompanies, { name: companyToAdd, url: '' }]);
+        // Auto-select it
+        setSelectedCompanies([...selectedCompanies, companyToAdd]);
+        toast.success(`Added ${companyToAdd}`);
+      } else if (validation.suggestions.length > 0) {
+        // Show suggestions
+        const suggestions = validation.suggestions.slice(0, 3).map(s => s.name).join(', ');
+        toast.error(`Company "${name}" not found. Did you mean: ${suggestions}?`);
+      } else {
+        toast.error(`Company "${name}" not found. Please check the spelling.`);
+      }
+    } catch (error) {
+      // If validation fails, still add the company (fallback behavior)
+      console.warn('Validation failed, adding company anyway:', error);
+      setCustomCompanies([...customCompanies, { name, url: '' }]);
+      setSelectedCompanies([...selectedCompanies, name]);
+      toast.warning(`Added ${name} (validation unavailable)`);
+    }
   };
 
   const handleUploadAndNext = async () => {

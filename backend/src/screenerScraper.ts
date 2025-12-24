@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { searchScreenerCompanyWithRetry, normalizeCompanyName } from './companyValidator';
 
 
 
@@ -68,30 +69,12 @@ interface ScreenerResult {
 
 /**
  * Search for a company on Screener.in
+ * Now uses retry logic and normalization from companyValidator
  */
 async function searchScreenerCompany(query: string): Promise<{ url: string; name: string } | null> {
-  try {
-    const searchUrl = `https://www.screener.in/api/company/search/?q=${encodeURIComponent(query)}`;
-    const response = await axios.get(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      }
-    });
-
-    if (Array.isArray(response.data) && response.data.length > 0) {
-      // Return the first match
-      const match = response.data[0];
-      return {
-        url: `https://www.screener.in${match.url}`,
-        name: match.name
-      };
-    }
-    return null;
-  } catch (error) {
-    console.warn(`[Screener] Search failed for ${query}:`, error);
-    return null;
-  }
+  return await searchScreenerCompanyWithRetry(query, 3);
 }
+
 
 /**
  * Scrape quarterly financial data from Screener.in

@@ -6,6 +6,14 @@ import { calculateDerivedMetrics, RawFinancialData } from './calculator';
 import { CompanyQuarterlyData, generateOutputExcel } from './excelProcessor';
 import { updateScrapingJob } from './db';
 
+/**
+ * Utility function to add delay between requests (rate limiting)
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
 export interface CompanyDetail {
   company: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
@@ -183,7 +191,13 @@ export async function orchestrateFinancialDataScraping(
       } catch (step1Error) {
         addLog(`[Step 1] Screener.in failed for ${company.name}: ${step1Error}`);
 
-        // STEP 2: Try MoneyControl scraping as fallback (may work for some pages)
+        // STEP 2: Try MoneyControl scraping as fallback (only if URL is configured)
+        if (!company.moneyControlUrl) {
+          addLog(`[Step 2] Skipping MoneyControl - no URL configured for ${company.name}`);
+          // Don't throw - let the outer catch handle this as a failed company
+          throw new Error(`No data sources available for ${company.name}. Screener failed and no MoneyControl URL configured.`);
+        }
+
         companyDetails[idx].stage = 'Step 2: Trying MoneyControl scraping';
         companyDetails[idx].dataSource = 'moneycontrol';
         companyDetails[idx].fallbackStep = 2;
@@ -321,14 +335,57 @@ export async function orchestrateFinancialDataScraping(
       console.error(`Unexpected error processing ${company.name}:`, error);
       companyDetails[idx].status = 'failed';
       companyDetails[idx].stage = `Error: ${String(error).substring(0, 100)}`;
+      companyDetails[idx].progress = 0; // Reset progress to show it's done (failed)
       failedCompanies.push(company.name);
       errors.push({
         company: company.name,
         error: String(error),
         timestamp: Date.now()
       });
+      
+      // Update progress immediately so UI shows error state instead of buffering
+      await updateScrapingJob(jobId, {
+        progressData: {
+          currentCompany: company.name,
+          completedCompanies,
+          failedCompanies,
+          totalCompanies,
+          currentStep: `Failed: ${company.name}`,
+          companyDetails: [...companyDetails],
+          isTestMode: testMode,
+          logs: [...logs]
+        },
+        errorLog: errors
+      });
+      
+      addLog(`[Error] ${company.name} failed: ${String(error).substring(0, 100)}`);
+    }
+    
+    // Rate limiting: Add delay between companies to avoid overwhelming APIs
+    // Skip delay for the last company
+    if (idx < companiesToProcess.length - 1) {
+      const rateLimitDelay = 2000; // 2 seconds between companies
+      addLog(`[Rate Limit] Waiting ${rateLimitDelay}ms before next company...`);
+      await delay(rateLimitDelay);
     }
   }
+
+  // Update final progress after all companies are processed
+  const finalStatus = completedCompanies.length > 0 ? 'Processing complete' : 'All companies failed';
+  addLog(`[Complete] Processed ${completedCompanies.length} companies successfully, ${failedCompanies.length} failed`);
+  
+  await updateScrapingJob(jobId, {
+    progressData: {
+      currentCompany: '',
+      completedCompanies,
+      failedCompanies,
+      totalCompanies,
+      currentStep: finalStatus,
+      companyDetails: [...companyDetails],
+      isTestMode: testMode,
+      logs: [...logs]
+    }
+  });
 
   // Generate output Excel if we have data
   let outputBuffer: Buffer | undefined;

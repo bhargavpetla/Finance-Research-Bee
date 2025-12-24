@@ -52,6 +52,7 @@ function parseQuarterHeader(header: string): { quarter: string; fiscalYear: stri
  */
 function normalizeIndicatorName(name: string): string {
   const mapping: Record<string, string> = {
+    // IT/Manufacturing metrics
     'net sales/income from operations': 'Net Sales / Income from Operations',
     'net sales / income from operations': 'Net Sales / Income from Operations',
     'revenue from operations': 'Net Sales / Income from Operations',
@@ -90,7 +91,32 @@ function normalizeIndicatorName(name: string): string {
     'admin. and selling expenses': 'Admin. And Selling Expenses',
     'r & d expenses': 'R & D Expenses',
     'provisions and contingencies': 'Provisions And Contingencies',
-    'exp. capitalised': 'Exp. Capitalised'
+    'exp. capitalised': 'Exp. Capitalised',
+    
+    // Banking & Financial Services specific metrics
+    'net interest income': 'Net Interest Income',
+    'interest income': 'Interest Income',
+    'interest earned': 'Interest Income',
+    'interest expended': 'Interest Expended',
+    'interest expense': 'Interest Expended',
+    'fee income': 'Fee Income',
+    'total income': 'Total Income',
+    'operating expenses': 'Operating Expenses',
+    'employee expenses': 'Employees Cost',
+    'provisions': 'Provisions',
+    'provisions for bad debts': 'Provisions',
+    'provision for npa': 'Provisions',
+    'operating profit': 'Operating Profit',
+    'profit before provisions': 'Profit Before Provisions',
+    'net profit after tax': 'Net Profit / (Loss) for the Period',
+    'total assets': 'Total Assets',
+    'total deposits': 'Total Deposits',
+    'total advances': 'Total Advances',
+    'gross npa': 'Gross NPA',
+    'net npa': 'Net NPA',
+    'casa ratio': 'CASA Ratio',
+    'net interest margin': 'Net Interest Margin',
+    'nim': 'Net Interest Margin'
   };
   
   const lowerName = name.toLowerCase().trim();
@@ -105,19 +131,23 @@ export async function scrapeMoneyControl(
   numberOfQuarters: number = 8,
   companyName?: string
 ): Promise<QuarterlyData[]> {
-  console.log(`[MoneyControl] Scraping ${companyName || 'company'} from ${companyUrl}`);
+  const maxRetries = 3;
+  let lastError: any;
   
-  try {
-    const response = await axios.get(companyUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Connection': 'keep-alive',
-      },
-      timeout: 45000,
-      maxRedirects: 5
-    });
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[MoneyControl] Scraping ${companyName || 'company'} from ${companyUrl} (attempt ${attempt}/${maxRetries})`);
+      
+      const response = await axios.get(companyUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Connection': 'keep-alive',
+        },
+        timeout: 45000,
+        maxRedirects: 5
+      });
 
     const html = response.data;
     const $ = cheerio.load(html);
@@ -131,11 +161,20 @@ export async function scrapeMoneyControl(
     
     tables.each((i: number, table: any) => {
       const tableText = $(table).text();
-      // Look for tables that contain financial indicators
-      if (tableText.includes('Net Sales') || 
+      // Look for tables that contain financial indicators (IT companies)
+      const hasITMetrics = tableText.includes('Net Sales') || 
           tableText.includes('Employees Cost') || 
           tableText.includes('Depreciation') ||
-          tableText.includes('Other Expenses')) {
+          tableText.includes('Other Expenses');
+      
+      // Look for banking/financial company indicators
+      const hasBankingMetrics = tableText.includes('Net Interest Income') ||
+          tableText.includes('Interest Income') ||
+          tableText.includes('Fee Income') ||
+          tableText.includes('Provisions') ||
+          tableText.includes('Total Income');
+      
+      if (hasITMetrics || hasBankingMetrics) {
         financialTable = $(table);
         return false; // break
       }
@@ -274,10 +313,23 @@ export async function scrapeMoneyControl(
     
     return quarters;
 
-  } catch (error) {
-    console.error(`[MoneyControl] Error scraping ${companyName}:`, error);
-    throw error;
+
+    } catch (error) {
+      lastError = error;
+      console.error(`[MoneyControl] Attempt ${attempt}/${maxRetries} failed for ${companyName}:`, error);
+      
+      if (attempt < maxRetries) {
+        // Exponential backoff: 2s, 4s, 8s
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`[MoneyControl] Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
+  
+  // All retries failed
+  console.error(`[MoneyControl] All ${maxRetries} attempts failed for ${companyName}`);
+  throw lastError;
 }
 
 /**

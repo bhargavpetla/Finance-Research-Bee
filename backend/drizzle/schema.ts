@@ -61,6 +61,7 @@ export const scrapingJobs = mysqlTable("scraping_jobs", {
     }>;
     isTestMode?: boolean;
     testCompanyCompleted?: boolean;
+    logs?: string[];
   }>(),
   errorLog: json("errorLog").$type<Array<{
     company: string;
